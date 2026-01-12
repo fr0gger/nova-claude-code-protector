@@ -126,6 +126,12 @@ def handle_session_start(project_dir: str) -> bool:
         return False
 
 
+def print_banner() -> None:
+    """Print NOVA protection active banner to stderr."""
+    banner = "\033[36m🛡️  NOVA Protection Active\033[0m"
+    print(banner, file=sys.stderr)
+
+
 def main() -> None:
     """
     Main entry point for the session-start hook.
@@ -143,7 +149,10 @@ def main() -> None:
         # Handle session start
         success = handle_session_start(project_dir)
 
-        if not success:
+        if success:
+            # Show banner to indicate NOVA is active
+            print_banner()
+        else:
             logger.debug("Session start completed with warnings")
 
     except Exception as e:
