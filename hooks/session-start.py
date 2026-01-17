@@ -74,8 +74,8 @@ def get_project_dir(hook_input: Optional[Dict[str, Any]]) -> str:
     """
     Determine the project directory.
 
-    The project directory is the current working directory where
-    Claude Code is running.
+    Uses CLAUDE_PROJECT_DIR environment variable if set by Claude Code,
+    otherwise falls back to current working directory.
 
     Args:
         hook_input: Parsed hook input (may contain hints)
@@ -83,8 +83,8 @@ def get_project_dir(hook_input: Optional[Dict[str, Any]]) -> str:
     Returns:
         Absolute path to project directory
     """
-    # Use current working directory as project root
-    return os.getcwd()
+    # Use CLAUDE_PROJECT_DIR if available, fallback to cwd
+    return os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
 
 
 def handle_session_start(project_dir: str) -> bool:

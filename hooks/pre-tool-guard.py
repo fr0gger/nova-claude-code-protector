@@ -50,10 +50,17 @@ DANGEROUS_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Write content patterns to block
+# Note: These patterns target actual malicious payloads, not legitimate code.
+# innerHTML, document.write are valid JS APIs - we only block suspicious combinations.
 DANGEROUS_CONTENT_PATTERNS: List[Tuple[str, str]] = [
-    (r'<script[^>]*>.*?(eval|document\.write|innerHTML)', "XSS injection attempt"),
-    (r';\s*DROP\s+TABLE', "SQL injection attempt"),
-    (r'UNION\s+SELECT.*FROM', "SQL injection attempt"),
+    # XSS: Block eval with user-controlled input patterns
+    (r'eval\s*\(\s*(location|document\.URL|document\.cookie|window\.name)', "XSS eval injection"),
+    # XSS: Block document.write with script injection
+    (r'document\.write\s*\([^)]*<script', "XSS document.write injection"),
+    # SQL injection patterns
+    (r";\s*DROP\s+TABLE", "SQL injection attempt"),
+    (r"UNION\s+SELECT.*FROM", "SQL injection attempt"),
+    (r"'\s*OR\s+'1'\s*=\s*'1", "SQL injection attempt"),
 ]
 
 

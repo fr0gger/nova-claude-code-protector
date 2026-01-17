@@ -153,6 +153,9 @@ def extract_text_content(tool_name: str, tool_result: Any) -> str:
         return ""
 
     if isinstance(tool_result, str):
+        # Check if this is an error message
+        if tool_result.startswith("Error:") or tool_result.startswith("[ERROR]"):
+            return f"[ERROR] {tool_result}"
         return tool_result
 
     if isinstance(tool_result, dict):
@@ -173,8 +176,18 @@ def extract_text_content(tool_name: str, tool_result: Any) -> str:
                         texts.append(block)
                 return "\n".join(texts)
 
+        # Check for error field (captures failed tool calls like 403 errors)
+        if "error" in tool_result:
+            error_val = tool_result["error"]
+            if isinstance(error_val, str):
+                return f"[ERROR] {error_val}"
+            elif isinstance(error_val, dict):
+                # Error might be nested: {"error": {"message": "..."}}
+                msg = error_val.get("message", str(error_val))
+                return f"[ERROR] {msg}"
+
         # Other common fields
-        for field in ["output", "result", "text", "file_content", "stdout", "data"]:
+        for field in ["output", "result", "text", "file_content", "stdout", "data", "stderr"]:
             if field in tool_result:
                 value = tool_result[field]
                 if isinstance(value, str):
@@ -402,6 +415,89 @@ def filter_by_severity(detections: List[Dict], min_severity: str) -> List[Dict]:
     ]
 
 
+def parse_mcp_tool_name(tool_name: str) -> Dict[str, Any]:
+    """
+    Parse MCP tool name to extract server and function.
+
+    MCP tools follow the naming convention: mcp__<server>__<function>
+    Examples:
+    - mcp__github__list_prs -> server="github", function="list_prs"
+    - mcp__brave-search__brave_web_search -> server="brave-search", function="brave_web_search"
+    - mcp_ide_getDiagnostics -> server="ide", function="getDiagnostics"
+
+    Args:
+        tool_name: Full tool name (e.g., "mcp__github__list_prs")
+
+    Returns:
+        Dict with:
+        - is_mcp: bool
+        - mcp_server: str or None
+        - mcp_function: str or None
+    """
+    if not (tool_name.startswith("mcp__") or tool_name.startswith("mcp_")):
+        return {"is_mcp": False, "mcp_server": None, "mcp_function": None}
+
+    # Handle mcp__ prefix (standard)
+    if tool_name.startswith("mcp__"):
+        parts = tool_name[5:].split("__", 1)  # Remove "mcp__" prefix
+    # Handle mcp_ prefix (IDE tools like mcp_ide_getDiagnostics)
+    else:
+        remainder = tool_name[4:]  # Remove "mcp_" prefix
+        # For mcp_ style, split on _ but only first occurrence
+        parts = remainder.split("_", 1) if "_" in remainder else [remainder]
+
+    if len(parts) >= 2:
+        return {
+            "is_mcp": True,
+            "mcp_server": parts[0],
+            "mcp_function": parts[1],
+        }
+    elif len(parts) == 1 and parts[0]:
+        return {
+            "is_mcp": True,
+            "mcp_server": parts[0],
+            "mcp_function": None,
+        }
+
+    return {"is_mcp": True, "mcp_server": None, "mcp_function": None}
+
+
+def parse_skill_tool(tool_name: str, tool_input: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Parse Skill tool invocation to extract skill name.
+
+    Skills are invoked via the "Skill" tool with a "skill" parameter.
+    Examples:
+    - tool_name="Skill", tool_input={"skill": "commit"} -> skill_name="commit"
+    - tool_name="Skill", tool_input={"skill": "review-pr", "args": "123"} -> skill_name="review-pr"
+    - tool_name="Skill", tool_input={"skill": "bmad:bmm:workflows:dev-story"} -> skill_name="bmad:bmm:workflows:dev-story"
+
+    Args:
+        tool_name: Tool name (should be "Skill" for skill invocations)
+        tool_input: Tool input containing the skill name
+
+    Returns:
+        Dict with:
+        - is_skill: bool
+        - skill_name: str or None (the skill being invoked)
+        - skill_args: str or None (optional arguments passed to the skill)
+    """
+    if tool_name != "Skill":
+        return {"is_skill": False, "skill_name": None, "skill_args": None}
+
+    if not tool_input or not isinstance(tool_input, dict):
+        return {"is_skill": True, "skill_name": None, "skill_args": None}
+
+    skill_name = tool_input.get("skill")
+    skill_args = tool_input.get("args")
+
+    return {
+        "is_skill": True,
+        "skill_name": skill_name if isinstance(skill_name, str) else None,
+        "skill_args": skill_args if isinstance(skill_args, str) else None,
+    }
+
+
 def capture_event(
     tool_name: str,
     tool_input: Dict[str, Any],
@@ -412,6 +508,7 @@ def capture_event(
     nova_severity: Optional[str] = None,
     nova_rules_matched: Optional[List[str]] = None,
     nova_scan_time_ms: int = 0,
+    is_error: bool = False,
 ) -> None:
     """
     Capture a tool event to the session log.
@@ -422,10 +519,16 @@ def capture_event(
         return
 
     try:
-        project_dir = os.getcwd()
+        # Use CLAUDE_PROJECT_DIR if available, fallback to cwd
+        project_dir = os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
         active_session = get_active_session(project_dir)
 
         if not active_session:
+            # Debug: log when session not found to aid troubleshooting
+            import logging
+            logging.getLogger("nova-protector").debug(
+                f"No active session found for project_dir: {project_dir}"
+            )
             return  # No active session, skip capture
 
         event_id = get_next_event_id(active_session, project_dir)
@@ -436,6 +539,12 @@ def capture_event(
         # Calculate duration
         duration_ms = int((timestamp_end - timestamp_start).total_seconds() * 1000)
 
+        # Parse MCP metadata
+        mcp_info = parse_mcp_tool_name(tool_name)
+
+        # Parse Skill metadata
+        skill_info = parse_skill_tool(tool_name, tool_input)
+
         event_record = {
             "type": "event",
             "id": event_id,
@@ -443,8 +552,17 @@ def capture_event(
             "timestamp_end": timestamp_end.isoformat().replace("+00:00", "Z"),
             "duration_ms": duration_ms,
             "tool_name": tool_name,
+            # MCP metadata
+            "is_mcp": mcp_info["is_mcp"],
+            "mcp_server": mcp_info["mcp_server"],
+            "mcp_function": mcp_info["mcp_function"],
+            # Skill metadata
+            "is_skill": skill_info["is_skill"],
+            "skill_name": skill_info["skill_name"],
+            "skill_args": skill_info["skill_args"],
             "tool_input": tool_input,
             "tool_output": truncated_output,
+            "is_error": is_error,
             "working_dir": project_dir,
             "files_accessed": extract_files_accessed(tool_name, tool_input) if SESSION_CAPTURE_AVAILABLE else [],
             "nova_verdict": nova_verdict,
@@ -492,6 +610,15 @@ def main() -> None:
 
     # Extract text content from tool result (needed for both capture and scan)
     text = extract_text_content(tool_name, tool_result)
+
+    # Detect if this is an error response
+    is_error = False
+    if text and text.startswith("[ERROR]"):
+        is_error = True
+    elif isinstance(tool_result, dict) and "error" in tool_result:
+        is_error = True
+    elif isinstance(tool_result, str) and tool_result.startswith("Error:"):
+        is_error = True
 
     # Tools to monitor for prompt injection scanning
     monitored_tools = {
@@ -591,6 +718,7 @@ def main() -> None:
         nova_severity=nova_severity,
         nova_rules_matched=nova_rules_matched,
         nova_scan_time_ms=nova_scan_time_ms,
+        is_error=is_error,
     )
 
     # Output warning to Claude if detections found

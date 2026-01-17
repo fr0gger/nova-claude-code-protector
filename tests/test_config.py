@@ -35,10 +35,10 @@ class TestConfigModuleExists:
         assert config_module.exists(), "hooks/lib/config.py should exist"
 
     def test_config_file_template_exists(self):
-        """nova-protector.yaml should exist in config/."""
+        """nova-config.yaml should exist in config/."""
         project_root = Path(__file__).parent.parent
-        config_file = project_root / "config" / "nova-protector.yaml"
-        assert config_file.exists(), "config/nova-protector.yaml should exist"
+        config_file = project_root / "config" / "nova-config.yaml"
+        assert config_file.exists(), "config/nova-config.yaml should exist"
 
 
 class TestSensibleDefaults:

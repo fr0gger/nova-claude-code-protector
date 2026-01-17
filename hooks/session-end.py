@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.9"
+# dependencies = ["anthropic"]
+# ///
 """
 NOVA Claude Code Protector - Session End Hook
 
@@ -11,6 +15,7 @@ Exit codes:
 
 import json
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,6 +29,7 @@ from config import get_config
 from report_generator import generate_html_report, save_report
 from session_manager import (
     build_session_object,
+    estimate_activity_metrics,
     finalize_session,
     get_active_session,
     get_session_paths,
@@ -56,15 +62,19 @@ def main() -> None:
             logger.warning(f"Failed to parse stdin JSON: {e}")
             sys.exit(0)
 
-        session_id = input_data.get("session_id", "")
+        # Claude Code provides its own session_id (UUID format), but we ignore it
+        # because NOVA generates its own timestamp-based session IDs
         session_end_time = input_data.get("session_end_time", "")
 
-        if not session_id:
-            logger.warning("No session_id in input, cannot finalize")
-            sys.exit(0)
+        # Use CLAUDE_PROJECT_DIR if available, fallback to cwd
+        project_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", str(Path.cwd())))
 
-        # Use current directory as project directory
-        project_dir = Path.cwd()
+        # Get NOVA's active session ID (timestamp format, not Claude's UUID)
+        session_id = get_active_session(str(project_dir))
+
+        if not session_id:
+            logger.warning("No active NOVA session found, cannot generate report")
+            sys.exit(0)
 
         # Build complete session object
         session_data = build_session_object(
@@ -72,6 +82,12 @@ def main() -> None:
             project_dir=project_dir,
             session_end_time=session_end_time or None,
         )
+
+        # Calculate estimated activity metrics from session events
+        # Uses character count heuristic (~4 chars per token) - no wrapper needed
+        activity_metrics = estimate_activity_metrics(session_data.get("events", []))
+        session_data["activity_metrics"] = activity_metrics
+        logger.debug(f"Estimated activity: {activity_metrics.get('tool_calls', 0)} tool calls")
 
         # Generate AI summary and add to session data
         # Respects ai_summary_enabled config setting

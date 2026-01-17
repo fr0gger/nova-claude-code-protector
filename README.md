@@ -5,9 +5,10 @@ Advanced security monitoring and prompt injection defense for [Claude Code](http
 ## Features
 
 - **Session Tracking** - Captures all tool usage with timestamps and metadata
-- **Prompt Injection Detection** - Three-tier scanning (keywords, semantic ML, LLM)
-- **Dangerous Command Blocking** - Prevents destructive operations before execution
-- **Interactive HTML Reports** - Visual timeline, filtering, and expandable event details
+- **Prompt Injection Detection** - Three-tier scanning (keywords, semantic ML, LLM) - *passive monitoring with warnings*
+- **Dangerous Command Blocking** - Actively prevents destructive operations before execution
+- **MCP & Skills Tracing** - Tracks MCP server calls and Agent Skills invocations with detailed breakdowns
+- **Interactive HTML Reports** - Visual timeline, conversation trace, and expandable event details
 - **AI-Powered Summaries** - Intelligent session summaries via Claude Haiku
 - **Configurable** - Custom report locations, detection thresholds, and rules
 
@@ -30,7 +31,7 @@ That's it! NOVA will now protect all your Claude Code sessions.
 
 ### Prerequisites
 
-- **Python 3.10+**
+- **Python 3.9+**
 - **UV** - Python package manager ([install](https://docs.astral.sh/uv/))
 - **jq** - JSON processor (install via `brew install jq` on macOS)
 
@@ -70,11 +71,11 @@ NOVA registers four Claude Code hooks that work together:
 │     └── Creates session JSONL file                          │
 │     └── Initializes tracking with session ID                │
 │                                                              │
-│  2. PreToolUse Hook (Bash, Write, Edit)                     │
+│  2. PreToolUse Hook (Bash, Write, Edit)           [ACTIVE]  │
 │     └── Scans commands BEFORE execution                     │
 │     └── BLOCKS dangerous operations (rm -rf, etc.)          │
 │                                                              │
-│  3. PostToolUse Hook (Read, Bash, WebFetch, etc.)           │
+│  3. PostToolUse Hook (Read, Bash, WebFetch, etc.) [PASSIVE] │
 │     └── Scans tool OUTPUT for prompt injection              │
 │     └── WARNS Claude if threats detected                    │
 │     └── Records event with NOVA verdict                     │
@@ -86,6 +87,30 @@ NOVA registers four Claude Code hooks that work together:
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### Active vs Passive Protection
+
+NOVA provides two modes of protection:
+
+| Mode | Hook | Behavior | Use Case |
+|------|------|----------|----------|
+| **ACTIVE** | PreToolUse | Blocks execution before it happens | Dangerous commands (`rm -rf /`, `sudo rm`, etc.) |
+| **PASSIVE** | PostToolUse | Warns Claude after content is read | Prompt injection in files, web pages, command output |
+
+**Important:** Prompt injection detection is **passive**. When NOVA detects a prompt injection in a file or web page, the content has already been read by Claude. NOVA sends a warning message to Claude advising it to treat the content with suspicion, but does not prevent Claude from seeing the malicious content.
+
+This is a limitation of the PostToolUse hook architecture - it runs *after* the tool executes. Active blocking of prompt injections would require scanning content before Claude reads it, which would involve reading files twice (once to scan, once for Claude).
+
+**What gets actively blocked:**
+- Destructive commands: `rm -rf /`, `sudo rm -rf`, `mkfs`
+- Dangerous operations: `dd if=... of=/dev/`, fork bombs
+- Credential exfiltration: `curl ... | sh`, reading `~/.ssh/id_rsa`
+
+**What gets passively warned:**
+- Prompt injection in files (Read tool)
+- Prompt injection in web pages (WebFetch tool)
+- Prompt injection in command output (Bash tool)
+- Prompt injection in MCP tool responses
 
 ### Three-Tier Detection
 
@@ -157,29 +182,6 @@ uv run hooks/test-nova-guard.py -i
 
 NOVA works with sensible defaults, but you can customize behavior.
 
-### NOVA Protector Config
-
-Edit `config/nova-protector.yaml`:
-
-```yaml
-# Report output directory
-# Empty = {project}/.nova-protector/reports/ (default)
-# Relative path = relative to project
-# Absolute path = exact location
-report_output_dir: ""
-
-# AI-powered session summaries
-# Set to false to use stats-only summaries (no API calls)
-ai_summary_enabled: true
-
-# Maximum size in KB for tool outputs in reports
-# Larger outputs will be truncated
-output_truncation_kb: 10
-
-# Directory for custom NOVA rules
-custom_rules_dir: "rules/"
-```
-
 ### NOVA Scanning Config
 
 Edit `config/nova-config.yaml`:
@@ -244,8 +246,7 @@ nova_claude_code_protector/
 ├── install.sh                    # Global installation script
 ├── uninstall.sh                  # Removal script
 ├── config/
-│   ├── nova-config.yaml          # NOVA scanning configuration
-│   └── nova-protector.yaml       # Session/report configuration
+│   └── nova-config.yaml          # NOVA scanning configuration
 ├── rules/
 │   ├── instruction_override.nov  # Override attack rules
 │   ├── roleplay_jailbreak.nov    # Jailbreak attack rules
@@ -256,14 +257,13 @@ nova_claude_code_protector/
 │   ├── pre-tool-guard.py         # PreToolUse hook (blocking)
 │   ├── post-tool-nova-guard.py   # PostToolUse hook (scanning)
 │   ├── session-end.py            # SessionEnd hook (reports)
+│   ├── user-prompt-capture.py    # Optional user prompt logging
 │   ├── test-nova-guard.py        # Testing utility
 │   └── lib/
 │       ├── session_manager.py    # Session tracking logic
 │       ├── report_generator.py   # HTML report generation
 │       ├── ai_summary.py         # AI summary generation
 │       └── config.py             # Configuration management
-├── tests/                        # Comprehensive test suite (483 tests)
-└── test-files/                   # Sample injection files
 ```
 
 ## Troubleshooting
@@ -293,8 +293,7 @@ uv run hooks/test-nova-guard.py --samples
 ### AI summaries not working
 
 1. Verify API key: `echo $ANTHROPIC_API_KEY`
-2. Check `ai_summary_enabled: true` in config
-3. Stats-only summaries are used as fallback
+2. Stats-only summaries are used as fallback when API unavailable
 
 ## Development
 
@@ -313,7 +312,7 @@ uv run pytest tests/ --cov=hooks/lib
 
 ### Test Coverage
 
-- 483 tests covering all functionality
+- 316 tests covering all functionality
 - Session management, report generation, AI summaries
 - Configuration loading, installation scripts
 - All acceptance criteria verified

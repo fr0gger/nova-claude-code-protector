@@ -10,8 +10,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -19,11 +17,14 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.mypy_cache/
+.ruff_cache/
 
 # Virtual environments
 .venv/
 venv/
 ENV/
+env/
 
 # IDE
 .vscode/
@@ -31,13 +32,24 @@ ENV/
 *.swp
 *.swo
 *~
+.project
+.pydevproject
+.settings/
 
 # OS
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # NOVA runtime data (per-project)
 .nova-protector/
+.nova_protector/
+
+# Claude Code
+.claude/
 
 # UV cache
 .uv/
@@ -45,4 +57,35 @@ Thumbs.db
 # Test artifacts
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+.tox/
+.nox/
+
+# Node (if any JS tooling)
+node_modules/
+.npm/
+
+# Logs
+*.log
+logs/
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+.secrets
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+.cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Distribution
+*.tar.gz
+*.zip

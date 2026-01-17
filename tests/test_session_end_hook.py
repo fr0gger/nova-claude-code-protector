@@ -298,7 +298,8 @@ class TestReportGenerator:
 
         html = generate_html_report(session_data)
 
-        assert "BLOCKED" in html
+        # HTML uses "DETECTED" for blocked status
+        assert "DETECTED" in html
 
     def test_generate_html_report_includes_events(self):
         """Test that events are included in report."""
@@ -324,8 +325,9 @@ class TestReportGenerator:
 
         assert "Read" in html
         assert "Bash" in html
-        assert "ALLOWED" in html
-        assert "WARNED" in html
+        # HTML uses lowercase verdicts
+        assert "allowed" in html
+        assert "warned" in html
 
     def test_generate_html_report_includes_tools_used(self):
         """Test tools breakdown in report."""

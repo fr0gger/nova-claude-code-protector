@@ -47,7 +47,7 @@ NOVA_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Verify we're in the right directory
 verify_source_files() {
     local missing=0
-    for hook in "session-start.py" "pre-tool-guard.py" "post-tool-nova-guard.py" "session-end.py"; do
+    for hook in "session-start.py" "user-prompt-capture.py" "pre-tool-guard.py" "post-tool-nova-guard.py" "session-end.py"; do
         if [[ ! -f "$NOVA_DIR/hooks/$hook" ]]; then
             print_error "Missing: hooks/$hook"
             missing=1
@@ -170,6 +170,17 @@ NOVA_HOOKS=$(cat <<EOF
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run $NOVA_DIR/hooks/user-prompt-capture.py"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
@@ -201,82 +212,12 @@ NOVA_HOOKS=$(cat <<EOF
     ],
     "PostToolUse": [
       {
-        "matcher": "Read",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
             "command": "uv run $NOVA_DIR/hooks/post-tool-nova-guard.py",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "WebFetch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run $NOVA_DIR/hooks/post-tool-nova-guard.py",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run $NOVA_DIR/hooks/post-tool-nova-guard.py",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Grep",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run $NOVA_DIR/hooks/post-tool-nova-guard.py",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Glob",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run $NOVA_DIR/hooks/post-tool-nova-guard.py",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run $NOVA_DIR/hooks/post-tool-nova-guard.py",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "mcp__*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run $NOVA_DIR/hooks/post-tool-nova-guard.py",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "mcp_*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run $NOVA_DIR/hooks/post-tool-nova-guard.py",
-            "timeout": 15
+            "timeout": 120
           }
         ]
       }
@@ -326,6 +267,7 @@ merge_hooks() {
 
         # Merge hook arrays
         .hooks.SessionStart = ((.hooks.SessionStart // []) | remove_nova_hooks) + ($nova.hooks.SessionStart // []) |
+        .hooks.UserPromptSubmit = ((.hooks.UserPromptSubmit // []) | remove_nova_hooks) + ($nova.hooks.UserPromptSubmit // []) |
         .hooks.PreToolUse = ((.hooks.PreToolUse // []) | remove_nova_hooks) + ($nova.hooks.PreToolUse // []) |
         .hooks.PostToolUse = ((.hooks.PostToolUse // []) | remove_nova_hooks) + ($nova.hooks.PostToolUse // []) |
         .hooks.SessionEnd = ((.hooks.SessionEnd // []) | remove_nova_hooks) + ($nova.hooks.SessionEnd // [])
@@ -385,10 +327,11 @@ echo "╚═══════════════════════�
 echo -e "${NC}"
 
 print_info "NOVA hooks registered:"
-echo "      • SessionStart  → session-start.py (session tracking)"
-echo "      • PreToolUse    → pre-tool-guard.py (dangerous command blocking)"
-echo "      • PostToolUse   → post-tool-nova-guard.py (prompt injection scanning)"
-echo "      • SessionEnd    → session-end.py (report generation)"
+echo "      • SessionStart       → session-start.py (session tracking)"
+echo "      • UserPromptSubmit   → user-prompt-capture.py (conversation capture)"
+echo "      • PreToolUse         → pre-tool-guard.py (dangerous command blocking)"
+echo "      • PostToolUse        → post-tool-nova-guard.py (prompt injection scanning)"
+echo "      • SessionEnd         → session-end.py (report generation)"
 echo ""
 
 print_info "Next steps:"
@@ -403,6 +346,9 @@ echo "     • Generate session reports"
 echo ""
 echo "  3. ${BOLD}View reports${NC} in:"
 echo "     {project}/.nova-protector/reports/"
+echo ""
+echo "  Reports include estimated activity metrics (tokens, processing time)"
+echo "  based on tool input/output data - no additional setup needed!"
 echo ""
 
 print_info "To uninstall, run: ./uninstall.sh"
