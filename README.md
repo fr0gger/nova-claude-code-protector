@@ -1,6 +1,6 @@
 # NOVA Claude Code Protector
 
-Advanced security monitoring and prompt injection defense for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) using the [NOVA Framework](https://github.com/fr0gger/nova-framework)'s three-tier detection system.
+Security monitoring and prompt injection defense for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) using the [NOVA Framework](https://github.com/fr0gger/nova-framework).
 
 ## Features
 
@@ -31,7 +31,7 @@ That's it! NOVA will now protect all your Claude Code sessions.
 
 ### Prerequisites
 
-- **Python 3.9+**
+- **Python 3.10+**
 - **UV** - Python package manager ([install](https://docs.astral.sh/uv/))
 - **jq** - JSON processor (install via `brew install jq` on macOS)
 
@@ -182,6 +182,29 @@ uv run hooks/test-nova-guard.py -i
 
 NOVA works with sensible defaults, but you can customize behavior.
 
+### NOVA Protector Config
+
+Edit `config/nova-protector.yaml`:
+
+```yaml
+# Report output directory
+# Empty = {project}/.nova-protector/reports/ (default)
+# Relative path = relative to project
+# Absolute path = exact location
+report_output_dir: ""
+
+# AI-powered session summaries
+# Set to false to use stats-only summaries (no API calls)
+ai_summary_enabled: true
+
+# Maximum size in KB for tool outputs in reports
+# Larger outputs will be truncated
+output_truncation_kb: 10
+
+# Directory for custom NOVA rules
+custom_rules_dir: "rules/"
+```
+
 ### NOVA Scanning Config
 
 Edit `config/nova-config.yaml`:
@@ -246,7 +269,7 @@ nova_claude_code_protector/
 ├── install.sh                    # Global installation script
 ├── uninstall.sh                  # Removal script
 ├── config/
-│   └── nova-config.yaml          # NOVA scanning configuration
+│   ├── nova-config.yaml          # NOVA scanning configuration
 ├── rules/
 │   ├── instruction_override.nov  # Override attack rules
 │   ├── roleplay_jailbreak.nov    # Jailbreak attack rules
@@ -257,13 +280,14 @@ nova_claude_code_protector/
 │   ├── pre-tool-guard.py         # PreToolUse hook (blocking)
 │   ├── post-tool-nova-guard.py   # PostToolUse hook (scanning)
 │   ├── session-end.py            # SessionEnd hook (reports)
-│   ├── user-prompt-capture.py    # Optional user prompt logging
 │   ├── test-nova-guard.py        # Testing utility
 │   └── lib/
 │       ├── session_manager.py    # Session tracking logic
 │       ├── report_generator.py   # HTML report generation
 │       ├── ai_summary.py         # AI summary generation
 │       └── config.py             # Configuration management
+├── tests/                        # Comprehensive test suite (483 tests)
+└── test-files/                   # Sample injection files
 ```
 
 ## Troubleshooting
@@ -293,7 +317,8 @@ uv run hooks/test-nova-guard.py --samples
 ### AI summaries not working
 
 1. Verify API key: `echo $ANTHROPIC_API_KEY`
-2. Stats-only summaries are used as fallback when API unavailable
+2. Check `ai_summary_enabled: true` in config
+3. Stats-only summaries are used as fallback
 
 ## Development
 
@@ -312,16 +337,10 @@ uv run pytest tests/ --cov=hooks/lib
 
 ### Test Coverage
 
-- 316 tests covering all functionality
+- 483 tests covering all functionality
 - Session management, report generation, AI summaries
 - Configuration loading, installation scripts
 - All acceptance criteria verified
-
-## Credits
-
-- **NOVA Framework** by [Thomas Roccia](https://github.com/fr0gger)
-- **Claude Hooks** concept by [Lasso Security](https://www.lasso.security/)
-- Based on research: [The Hidden Backdoor in Claude Coding Assistant](https://www.lasso.security/blog/the-hidden-backdoor-in-claude-coding-assistant)
 
 ## License
 
