@@ -16,7 +16,7 @@ Security monitoring and prompt injection defense for [Claude Code](https://docs.
 
 ```bash
 # Clone the repository
-git clone https://github.com/fr0gger/nova_claude_code_protector.git
+git clone https://github.com/fr0gger/nova-claude-code-protector.git
 cd nova_claude_code_protector
 
 # Install globally (registers hooks in ~/.claude/settings.json)
