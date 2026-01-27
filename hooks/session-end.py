@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.9"
-# dependencies = ["anthropic"]
+# dependencies = ["anthropic", "pyyaml"]
 # ///
 """
 NOVA Claude Code Protector - Session End Hook
@@ -25,7 +25,6 @@ lib_dir = Path(__file__).parent / "lib"
 sys.path.insert(0, str(lib_dir))
 
 from ai_summary import generate_ai_summary
-from config import get_config
 from report_generator import generate_html_report, save_report
 from session_manager import (
     build_session_object,
@@ -34,6 +33,8 @@ from session_manager import (
     get_active_session,
     get_session_paths,
 )
+
+from config import get_config
 
 # Configure logging - only warnings and errors to stderr
 logging.basicConfig(

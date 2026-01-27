@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.9"
-# dependencies = []
+# dependencies = ["pyyaml"]
 # ///
 """
 NOVA Claude Code Protector - Session Start Hook
@@ -28,11 +28,7 @@ from typing import Any, Dict, Optional
 # Add hooks/lib to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from session_manager import (
-    generate_session_id,
-    get_active_session,
-    init_session_file,
-)
+from session_manager import generate_session_id, get_active_session, init_session_file
 
 # Configure logging to stderr (never stdout - reserved for Claude feedback)
 logging.basicConfig(

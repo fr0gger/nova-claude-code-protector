@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.9"
-# dependencies = []
+# dependencies = ["pyyaml"]
 # ///
 """
 Claude Code NOVA Protector - PreToolUse Hook (Fast Blocking)
@@ -21,7 +21,6 @@ import json
 import re
 import sys
 from typing import Any, Dict, List, Optional, Tuple
-
 
 # Dangerous command patterns to block
 DANGEROUS_PATTERNS: List[Tuple[str, str]] = [
