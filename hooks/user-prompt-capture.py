@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.9"
-# dependencies = []
+# dependencies = ["pyyaml"]
 # ///
 """
 NOVA Claude Code Protector - User Prompt Capture Hook
@@ -23,6 +23,7 @@ from pathlib import Path
 lib_dir = Path(__file__).parent / "lib"
 sys.path.insert(0, str(lib_dir))
 
+from nova_logging import log_event
 from session_manager import append_event, get_active_session, get_next_event_id
 
 
@@ -39,6 +40,8 @@ def main() -> None:
             input_data = json.load(sys.stdin)
         except json.JSONDecodeError:
             sys.exit(0)
+
+        log_event(input_data, "User prompt captured")
 
         # Extract prompt text
         prompt = input_data.get("prompt", "")

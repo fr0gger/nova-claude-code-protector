@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.9"
-# dependencies = []
+# dependencies = ["pyyaml"]
 # ///
 """
 NOVA Claude Code Protector - Session Start Hook
@@ -28,11 +28,8 @@ from typing import Any, Dict, Optional
 # Add hooks/lib to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from session_manager import (
-    generate_session_id,
-    get_active_session,
-    init_session_file,
-)
+from nova_logging import log_event
+from session_manager import generate_session_id, get_active_session, init_session_file
 
 # Configure logging to stderr (never stdout - reserved for Claude feedback)
 logging.basicConfig(
@@ -139,9 +136,11 @@ def main() -> None:
     Implements AC3: Fail-open error handling.
     Always exits with code 0 to never block Claude Code.
     """
+
     try:
         # Parse hook input from stdin
         hook_input = parse_hook_input()
+        log_event(hook_input, "Session started")
 
         # Get project directory
         project_dir = get_project_dir(hook_input)
@@ -158,7 +157,6 @@ def main() -> None:
     except Exception as e:
         # AC3: Fail-open - log error but never crash
         logger.error(f"Unexpected error in session-start hook: {e}")
-
     # Always exit 0 - never block Claude Code operation
     sys.exit(0)
 
