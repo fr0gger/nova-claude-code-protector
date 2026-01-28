@@ -25,6 +25,7 @@ lib_dir = Path(__file__).parent / "lib"
 sys.path.insert(0, str(lib_dir))
 
 from ai_summary import generate_ai_summary
+from nova_logging import log_event
 from report_generator import generate_html_report, save_report
 from session_manager import (
     build_session_object,
@@ -59,6 +60,7 @@ def main() -> None:
         # Parse input from Claude Code
         try:
             input_data = json.load(sys.stdin)
+            log_event(input_data, "Session ended")
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse stdin JSON: {e}")
             sys.exit(0)
