@@ -81,3 +81,10 @@ debug: false
 
 # Log file location (empty = no file logging)
 log_file: ""
+
+# Logging handlers configuration
+logging:
+  handlers:
+    - file
+  file:
+    output_dir: ""
