@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.9"
-# dependencies = ["anthropic"]
+# dependencies = ["anthropic", "pyyaml"]
 # ///
 """
 NOVA Claude Code Protector - Session End Hook
@@ -25,7 +25,7 @@ lib_dir = Path(__file__).parent / "lib"
 sys.path.insert(0, str(lib_dir))
 
 from ai_summary import generate_ai_summary
-from config import get_config
+from nova_logging import log_event
 from report_generator import generate_html_report, save_report
 from session_manager import (
     build_session_object,
@@ -34,6 +34,8 @@ from session_manager import (
     get_active_session,
     get_session_paths,
 )
+
+from config import get_config
 
 # Configure logging - only warnings and errors to stderr
 logging.basicConfig(
@@ -58,6 +60,7 @@ def main() -> None:
         # Parse input from Claude Code
         try:
             input_data = json.load(sys.stdin)
+            log_event(input_data, "Session ended")
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse stdin JSON: {e}")
             sys.exit(0)

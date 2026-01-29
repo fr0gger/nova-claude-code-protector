@@ -36,14 +36,16 @@ from typing import Any, Dict, List, Optional
 # Add hooks/lib to path for session_manager imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
+from nova_logging import log_event
+
 # Session capture imports (fail-open if not available)
 try:
     from session_manager import (
+        append_event,
+        extract_files_accessed,
         get_active_session,
         get_next_event_id,
-        append_event,
         truncate_output,
-        extract_files_accessed,
     )
     SESSION_CAPTURE_AVAILABLE = True
 except ImportError:
@@ -56,8 +58,8 @@ except ImportError:
 
 # NOVA Framework imports
 try:
-    from nova.core.scanner import NovaScanner
     from nova.core.parser import NovaRuleFileParser
+    from nova.core.scanner import NovaScanner
     NOVA_AVAILABLE = True
 except ImportError:
     NOVA_AVAILABLE = False
@@ -509,7 +511,7 @@ def capture_event(
     nova_rules_matched: Optional[List[str]] = None,
     nova_scan_time_ms: int = 0,
     is_error: bool = False,
-) -> None:
+) -> Dict[str, Any]:
     """
     Capture a tool event to the session log.
 
@@ -518,6 +520,8 @@ def capture_event(
     if not SESSION_CAPTURE_AVAILABLE:
         return
 
+
+    event_record = {}
     try:
         # Use CLAUDE_PROJECT_DIR if available, fallback to cwd
         project_dir = os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
@@ -580,7 +584,7 @@ def capture_event(
     except Exception:
         # Fail-open: never crash on capture errors
         pass
-
+    return event_record
 
 def main() -> None:
     """Main entry point for the PostToolUse hook."""
@@ -708,7 +712,7 @@ def main() -> None:
     timestamp_end = datetime.now(timezone.utc)
 
     # Capture the event to session log (for ALL tools, not just monitored)
-    capture_event(
+    event_record = capture_event(
         tool_name=tool_name,
         tool_input=tool_input,
         tool_output_text=text or "",
@@ -730,6 +734,9 @@ def main() -> None:
         # Using "block" decision sends the reason to Claude as feedback
         output = {"decision": "block", "reason": warning}
         print(json.dumps(output))
+
+    input_data["event"] = event_record
+    log_event(input_data, "Tool event captured")
 
     # Always exit 0 to allow continuation (warn, don't block)
     sys.exit(0)
