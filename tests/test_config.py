@@ -82,7 +82,7 @@ class TestSensibleDefaults:
         assert config.output_truncation_kb == 10
 
     def test_default_report_path(self, tmp_path):
-        """Default report path should be {project}/.nova-protector/reports/."""
+        """Default report path should be {project}/.nova-tracer/reports/."""
         from config import NovaConfig
 
         config = NovaConfig()
@@ -90,7 +90,7 @@ class TestSensibleDefaults:
         project_dir.mkdir()
 
         report_dir = config.get_report_output_dir(project_dir)
-        assert report_dir == project_dir / ".nova-protector" / "reports"
+        assert report_dir == project_dir / ".nova-tracer" / "reports"
 
 
 class TestConfigurationFileLoading:
@@ -183,7 +183,7 @@ class TestCustomReportLocation:
         project_dir.mkdir()
 
         report_dir = config.get_report_output_dir(project_dir)
-        assert report_dir == project_dir / ".nova-protector" / "reports"
+        assert report_dir == project_dir / ".nova-tracer" / "reports"
 
 
 class TestCustomRulesLoading:

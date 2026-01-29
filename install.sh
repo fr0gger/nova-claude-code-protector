@@ -1,9 +1,10 @@
 #!/bin/bash
 #
-# NOVA Claude Code Protector - Installer
+# Nova-tracer - Installer
+# Agent Monitoring and Visibility
 # =======================================
 #
-# Installs NOVA protection hooks for Claude Code.
+# Installs Nova-tracer hooks for Claude Code.
 # Registers hooks globally in ~/.claude/settings.json
 #
 # Four protection hooks:
@@ -30,8 +31,8 @@ NC='\033[0m'
 print_header() {
     echo -e "${CYAN}"
     echo "╔════════════════════════════════════════════════════════════╗"
-    echo "║      NOVA Claude Code Protector - Installation             ║"
-    echo "║  Session Tracking + Security Scanning + Reports            ║"
+    echo "║            Nova-tracer - Installation                      ║"
+    echo "║       Agent Monitoring and Visibility                      ║"
     echo "╚════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -41,7 +42,7 @@ print_warning() { echo -e "${YELLOW}!${NC} $1"; }
 print_error() { echo -e "${RED}✗${NC} $1"; }
 print_info() { echo -e "${BLUE}ℹ${NC} $1"; }
 
-# Get script directory (NOVA installation location)
+# Get script directory (Nova-tracer installation location)
 NOVA_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Verify we're in the right directory
@@ -65,7 +66,7 @@ CLAUDE_DIR="$HOME/.claude"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 
 print_header
-print_info "NOVA Directory: $NOVA_DIR"
+print_info "Nova-tracer Directory: $NOVA_DIR"
 print_info "Claude Settings: $SETTINGS_FILE"
 echo ""
 
@@ -152,10 +153,10 @@ fi
 # Register NOVA Hooks in settings.json
 # =============================================================================
 
-echo -e "${BOLD}Registering NOVA hooks...${NC}"
+echo -e "${BOLD}Registering Nova-tracer hooks...${NC}"
 echo ""
 
-# Define NOVA hooks configuration
+# Define Nova-tracer hooks configuration
 NOVA_HOOKS=$(cat <<EOF
 {
   "hooks": {
@@ -243,12 +244,12 @@ merge_hooks() {
     local existing="$1"
     local nova="$2"
 
-    # Use jq to deep merge, with NOVA hooks added to existing arrays
+    # Use jq to deep merge, with Nova-tracer hooks added to existing arrays
     echo "$existing" | jq --argjson nova "$nova" '
-        # Helper function to check if a hook command contains NOVA path
+        # Helper function to check if a hook command contains Nova-tracer path
         def is_nova_hook: .command | test("nova_claude_code_protector|nova-guard");
 
-        # Remove any existing NOVA hooks from an array
+        # Remove any existing Nova-tracer hooks from an array
         def remove_nova_hooks: map(select(
             if .hooks then
                 .hooks | map(select(is_nova_hook | not)) | length > 0
@@ -276,9 +277,9 @@ merge_hooks() {
 
 # Handle settings.json creation or update
 if [[ ! -f "$SETTINGS_FILE" ]]; then
-    # Create new settings.json with NOVA hooks
+    # Create new settings.json with Nova-tracer hooks
     echo "$NOVA_HOOKS" | jq '.' > "$SETTINGS_FILE"
-    print_success "Created settings.json with NOVA hooks"
+    print_success "Created settings.json with Nova-tracer hooks"
 else
     # Backup existing settings
     cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup.$(date +%Y%m%d%H%M%S)"
@@ -289,14 +290,14 @@ else
 
     # Check if it has hooks section
     if echo "$existing_settings" | jq -e '.hooks' > /dev/null 2>&1; then
-        # Merge NOVA hooks with existing hooks
+        # Merge Nova-tracer hooks with existing hooks
         merged=$(merge_hooks "$existing_settings" "$NOVA_HOOKS")
         echo "$merged" | jq '.' > "$SETTINGS_FILE"
-        print_success "Merged NOVA hooks with existing hooks"
+        print_success "Merged Nova-tracer hooks with existing hooks"
     else
         # Add hooks section to existing settings
         echo "$existing_settings" | jq --argjson nova "$NOVA_HOOKS" '. + {hooks: $nova.hooks}' > "$SETTINGS_FILE"
-        print_success "Added NOVA hooks to existing settings"
+        print_success "Added Nova-tracer hooks to existing settings"
     fi
 fi
 
@@ -326,7 +327,7 @@ echo "║              Installation Complete!                        ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-print_info "NOVA hooks registered:"
+print_info "Nova-tracer hooks registered:"
 echo "      • SessionStart       → session-start.py (session tracking)"
 echo "      • UserPromptSubmit   → user-prompt-capture.py (conversation capture)"
 echo "      • PreToolUse         → pre-tool-guard.py (dangerous command blocking)"
@@ -338,14 +339,14 @@ print_info "Next steps:"
 echo ""
 echo "  1. ${BOLD}Restart Claude Code${NC} to activate hooks"
 echo ""
-echo "  2. ${BOLD}Start a session${NC} - NOVA will automatically:"
+echo "  2. ${BOLD}Start a session${NC} - Nova-tracer will automatically:"
 echo "     • Track all tool usage"
 echo "     • Block dangerous commands"
 echo "     • Scan for prompt injection"
 echo "     • Generate session reports"
 echo ""
 echo "  3. ${BOLD}View reports${NC} in:"
-echo "     {project}/.nova-protector/reports/"
+echo "     {project}/.nova-tracer/reports/"
 echo ""
 echo "  Reports include estimated activity metrics (tokens, processing time)"
 echo "  based on tool input/output data - no additional setup needed!"

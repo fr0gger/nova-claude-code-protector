@@ -3,7 +3,8 @@
 # dependencies = ["nova-hunting", "pyyaml"]
 # ///
 """
-Claude Code NOVA Prompt Injection Guard - PostToolUse Hook
+Nova-tracer - PostToolUse Hook
+Agent Monitoring and Visibility
 ==============================================================
 
 Scans tool outputs using NOVA Framework's three-tier detection:
@@ -35,8 +36,6 @@ from typing import Any, Dict, List, Optional
 
 # Add hooks/lib to path for session_manager imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-
-from nova_logging import log_event
 
 # Session capture imports (fail-open if not available)
 try:
@@ -530,7 +529,7 @@ def capture_event(
         if not active_session:
             # Debug: log when session not found to aid troubleshooting
             import logging
-            logging.getLogger("nova-protector").debug(
+            logging.getLogger("nova-tracer").debug(
                 f"No active session found for project_dir: {project_dir}"
             )
             return  # No active session, skip capture
@@ -735,8 +734,9 @@ def main() -> None:
         output = {"decision": "block", "reason": warning}
         print(json.dumps(output))
 
-    input_data["event"] = event_record
-    log_event(input_data, "Tool event captured")
+    # Note: Telemetry logging (log_event) disabled for performance - each hook is a new process
+    # and log_event() re-parses config + discovers plugins on every call (~50-100ms overhead)
+    # Event data is already captured to session JSONL via capture_event() above
 
     # Always exit 0 to allow continuation (warn, don't block)
     sys.exit(0)

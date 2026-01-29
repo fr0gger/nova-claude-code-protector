@@ -1,4 +1,5 @@
-# NOVA Claude Code Protector
+# Nova-tracer
+### Agent Monitoring and Visibility
 
 Security monitoring and prompt injection defense for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) using the [NOVA Framework](https://github.com/fr0gger/nova-framework).
 
@@ -25,7 +26,7 @@ cd nova_claude_code_protector
 # Restart Claude Code to activate hooks
 ```
 
-That's it! NOVA will now protect all your Claude Code sessions.
+That's it! Nova-tracer will now protect all your Claude Code sessions.
 
 ## Installation
 
@@ -43,7 +44,7 @@ That's it! NOVA will now protect all your Claude Code sessions.
 
 The installer will:
 1. Verify all prerequisites are installed
-2. Register four NOVA hooks in `~/.claude/settings.json`
+2. Register four Nova-tracer hooks in `~/.claude/settings.json`
 3. Preserve any existing hooks you may have configured
 4. Make hook scripts executable
 
@@ -54,13 +55,13 @@ The installer will:
 ```
 
 The uninstaller will:
-1. Remove only NOVA hooks from settings.json
+1. Remove only Nova-tracer hooks from settings.json
 2. Preserve all other hooks and settings
-3. Optionally clean up `.nova-protector/` directories
+3. Optionally clean up `.nova-tracer/` directories
 
 ## How It Works
 
-NOVA registers four Claude Code hooks that work together:
+Nova-tracer registers four Claude Code hooks that work together:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -83,21 +84,21 @@ NOVA registers four Claude Code hooks that work together:
 │  4. SessionEnd Hook                                          │
 │     └── Generates interactive HTML report                   │
 │     └── Creates AI-powered session summary                  │
-│     └── Saves to .nova-protector/reports/                   │
+│     └── Saves to .nova-tracer/reports/                      │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### Active vs Passive Protection
 
-NOVA provides two modes of protection:
+Nova-tracer provides two modes of protection:
 
 | Mode | Hook | Behavior | Use Case |
 |------|------|----------|----------|
 | **ACTIVE** | PreToolUse | Blocks execution before it happens | Dangerous commands (`rm -rf /`, `sudo rm`, etc.) |
 | **PASSIVE** | PostToolUse | Warns Claude after content is read | Prompt injection in files, web pages, command output |
 
-**Important:** Prompt injection detection is **passive**. When NOVA detects a prompt injection in a file or web page, the content has already been read by Claude. NOVA sends a warning message to Claude advising it to treat the content with suspicion, but does not prevent Claude from seeing the malicious content.
+**Important:** Prompt injection detection is **passive**. When Nova-tracer detects a prompt injection in a file or web page, the content has already been read by Claude. Nova-tracer sends a warning message to Claude advising it to treat the content with suspicion, but does not prevent Claude from seeing the malicious content.
 
 This is a limitation of the PostToolUse hook architecture - it runs *after* the tool executes. Active blocking of prompt injections would require scanning content before Claude reads it, which would involve reading files twice (once to scan, once for Claude).
 
@@ -131,7 +132,7 @@ This is a limitation of the PostToolUse hook architecture - it runs *after* the 
 
 ### Automatic Protection
 
-Once installed, NOVA works automatically:
+Once installed, Nova-tracer works automatically:
 
 1. **Start any Claude Code session** - SessionStart hook initializes tracking
 2. **Use Claude normally** - All tool calls are monitored and scanned
@@ -139,14 +140,14 @@ Once installed, NOVA works automatically:
 
 ### View Reports
 
-Reports are saved to each project's `.nova-protector/reports/` directory:
+Reports are saved to each project's `.nova-tracer/reports/` directory:
 
 ```bash
 # List reports for current project
-ls .nova-protector/reports/
+ls .nova-tracer/reports/
 
 # Open a report in your browser
-open .nova-protector/reports/session-abc123.html
+open .nova-tracer/reports/session-abc123.html
 ```
 
 ### Report Features
@@ -158,11 +159,11 @@ The interactive HTML report includes:
 - **Event Timeline** - Visual chronological view of all tool calls
 - **Filtering** - Filter by tool type or NOVA verdict (allowed/warned/blocked)
 - **Expandable Details** - Click any event to see full input/output
-- **NOVA Verdict Details** - Severity, matched rules, scan time
+- **Nova-tracer Verdict Details** - Severity, matched rules, scan time
 
 ### Manual Testing
 
-Test NOVA detection without running Claude Code:
+Test Nova-tracer detection without running Claude Code:
 
 ```bash
 # Run sample attack tests
@@ -180,15 +181,15 @@ uv run hooks/test-nova-guard.py -i
 
 ## Configuration
 
-NOVA works with sensible defaults, but you can customize behavior.
+Nova-tracer works with sensible defaults, but you can customize behavior.
 
-### NOVA Protector Config
+### Nova-tracer Protector Config
 
-Edit `config/nova-protector.yaml`:
+Edit `config/nova-tracer.yaml`:
 
 ```yaml
 # Report output directory
-# Empty = {project}/.nova-protector/reports/ (default)
+# Empty = {project}/.nova-tracer/reports/ (default)
 # Relative path = relative to project
 # Absolute path = exact location
 report_output_dir: ""
@@ -205,7 +206,7 @@ output_truncation_kb: 10
 custom_rules_dir: "rules/"
 ```
 
-### NOVA Scanning Config
+### Nova-tracer Scanning Config
 
 Edit `config/nova-config.yaml`:
 
@@ -300,7 +301,7 @@ nova_claude_code_protector/
 
 ### Reports not generating
 
-1. Check for active session: `ls .nova-protector/sessions/`
+1. Check for active session: `ls .nova-tracer/sessions/`
 2. Verify write permissions in project directory
 3. Check stderr for errors during session end
 

@@ -1,5 +1,6 @@
 """
-Session Manager Module for NOVA Claude Code Protector.
+Session Manager Module for Nova-tracer.
+Agent Monitoring and Visibility
 
 This module provides the foundation for session capture, managing:
 - Session ID generation (unique, timestamp-based)
@@ -26,10 +27,10 @@ logging.basicConfig(
     format="[NOVA %(levelname)s] %(message)s",
     stream=sys.stderr,
 )
-logger = logging.getLogger("nova-protector.session")
+logger = logging.getLogger("nova-tracer.session")
 
 # Constants
-NOVA_DIR_NAME = ".nova-protector"
+NOVA_DIR_NAME = ".nova-tracer"
 SESSIONS_DIR_NAME = "sessions"
 REPORTS_DIR_NAME = "reports"
 SESSION_FILE_EXT = ".jsonl"

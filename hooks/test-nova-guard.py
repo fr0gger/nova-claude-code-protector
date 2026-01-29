@@ -3,7 +3,8 @@
 # dependencies = ["nova-hunting", "pyyaml"]
 # ///
 """
-NOVA Claude Code Protector - Testing Utility
+Nova-tracer - Testing Utility
+Agent Monitoring and Visibility
 =============================================
 
 Test the NOVA prompt injection guard with sample content or custom input.

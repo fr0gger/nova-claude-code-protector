@@ -1,15 +1,16 @@
 """
-NOVA Claude Code Protector - File Handler Plugin.
+Nova-tracer - File Handler Plugin.
+Agent Monitoring and Visibility
 
 Writes JSON-formatted log entries to a file named after the session ID.
-Files are placed in .nova-protector/logs/ by default.
+Files are placed in .nova-tracer/logs/ by default.
 
 Configuration in nova-config.yaml:
     logging:
       handlers:
         - file
       file:
-        output_dir: ""  # Empty = default .nova-protector/logs/
+        output_dir: ""  # Empty = default .nova-tracer/logs/
 """
 
 import logging
@@ -47,9 +48,9 @@ def create_handler(config: Dict[str, Any], session_id: str) -> logging.Handler:
             project_dir = os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
             log_dir = Path(project_dir) / output_dir
     else:
-        # Default: .nova-protector/logs/
+        # Default: .nova-tracer/logs/
         project_dir = os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
-        log_dir = Path(project_dir) / ".nova-protector" / "logs"
+        log_dir = Path(project_dir) / ".nova-tracer" / "logs"
 
     # Create directory if needed
     log_dir.mkdir(parents=True, exist_ok=True)

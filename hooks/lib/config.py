@@ -1,8 +1,9 @@
 """
-Configuration Module for NOVA Claude Code Protector.
+Configuration Module for Nova-tracer.
+Agent Monitoring and Visibility
 
 Provides centralized configuration management with sensible defaults.
-Loads optional YAML configuration from config/nova-protector.yaml.
+Loads optional YAML configuration from config/nova-tracer.yaml.
 
 Story 5.2: Configuration and Extensibility
 - Sensible defaults when no config file exists
@@ -25,7 +26,7 @@ logging.basicConfig(
     format="[NOVA %(levelname)s] %(message)s",
     stream=sys.stderr,
 )
-logger = logging.getLogger("nova-protector.config")
+logger = logging.getLogger("nova-tracer.config")
 
 
 # Known configuration keys
@@ -54,13 +55,13 @@ KNOWN_KEYS = {
 @dataclass
 class NovaConfig:
     """
-    Configuration for NOVA Claude Code Protector.
+    Configuration for Nova-tracer.
 
     All fields have sensible defaults that work out of the box.
     """
 
     # Report settings
-    report_output_dir: str = ""  # Empty = use default {project}/.nova-protector/reports/
+    report_output_dir: str = ""  # Empty = use default {project}/.nova-tracer/reports/
 
     # AI Summary settings
     ai_summary_enabled: bool = True  # Use AI summaries when API key present
@@ -102,8 +103,8 @@ class NovaConfig:
                 # Relative to project directory
                 return project_dir / custom_path
         else:
-            # Default: {project}/.nova-protector/reports/
-            return project_dir / ".nova-protector" / "reports"
+            # Default: {project}/.nova-tracer/reports/
+            return project_dir / ".nova-tracer" / "reports"
 
     def get_truncation_bytes(self) -> int:
         """Get the truncation limit in bytes."""
@@ -127,13 +128,13 @@ class NovaConfig:
 
 def _find_nova_dir() -> Optional[Path]:
     """
-    Find the NOVA installation directory.
+    Find the Nova-tracer installation directory.
 
     Looks for the directory containing the hooks/ folder.
     Uses the location of this file to determine the path.
 
     Returns:
-        Path to NOVA directory, or None if not found
+        Path to Nova-tracer directory, or None if not found
     """
     # This file is at hooks/lib/config.py
     # NOVA_DIR is two levels up
@@ -192,21 +193,21 @@ def _warn_unknown_keys(config: Dict[str, Any]) -> None:
 
 def load_config(config_path: Optional[Path] = None) -> NovaConfig:
     """
-    Load NOVA configuration from file with sensible defaults.
+    Load Nova-tracer configuration from file with sensible defaults.
 
     Args:
         config_path: Optional path to config file. If None, looks for
-                    config/nova-protector.yaml in NOVA_DIR.
+                    config/nova-tracer.yaml in NOVA_DIR.
 
     Returns:
         NovaConfig object with loaded or default values
     """
-    # Find NOVA directory
+    # Find Nova-tracer directory
     nova_dir = _find_nova_dir()
 
     # Determine config file path
     if config_path is None and nova_dir:
-        config_path = nova_dir / "config" / "nova-protector.yaml"
+        config_path = nova_dir / "config" / "nova-tracer.yaml"
 
     # Load config from file
     config_dict: Dict[str, Any] = {}

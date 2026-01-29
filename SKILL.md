@@ -1,4 +1,5 @@
-# NOVA Claude Code Protector Skill
+# Nova-tracer Skill
+### Agent Monitoring and Visibility
 
 ## Overview
 

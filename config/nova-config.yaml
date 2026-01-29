@@ -1,4 +1,5 @@
-# NOVA Claude Code Protector Configuration
+# Nova-tracer Configuration
+# Agent Monitoring and Visibility
 # =========================================
 #
 # Three-tier detection: Keywords + Semantics + LLM
@@ -26,7 +27,7 @@ model: claude-3-5-haiku-20241022
 # Disable LLM tier for faster scanning (keywords + semantics only)
 enable_keywords: true    # Tier 1: Fast regex-based detection (~1ms)
 enable_semantics: true   # Tier 2: ML-based semantic similarity (~50ms)
-enable_llm: true         # Tier 3: LLM-powered analysis (~500-2000ms)
+enable_llm: false        # Tier 3: LLM-powered analysis (~500-2000ms) - DISABLED for performance
 
 # =============================================================================
 # THRESHOLD CONFIGURATION
@@ -86,18 +87,18 @@ log_file: ""
 logging:
   handlers:
     - file
-    - datadog
+    # - datadog  # Enable by setting DD_API_KEY env var
   file:
     output_dir: ""
   datadog:
     api_key: ${DD_API_KEY}
     site: datadoghq.com
-    service: nova-protector
+    service: nova-tracer
     source: claude-code-hooks
     tags:
       - env:staging
-      - project:nova-protector
+      - project:nova-tracer
       - version:1.0.0
       - team:cti
-      - service:nova-protector
+      - service:nova-tracer
       - source:claude-code-hooks

@@ -85,8 +85,8 @@ class TestGetSessionPaths:
 
             assert "sessions" in paths
             assert "reports" in paths
-            assert paths["sessions"] == Path(tmpdir) / ".nova-protector" / "sessions"
-            assert paths["reports"] == Path(tmpdir) / ".nova-protector" / "reports"
+            assert paths["sessions"] == Path(tmpdir) / ".nova-tracer" / "sessions"
+            assert paths["reports"] == Path(tmpdir) / ".nova-tracer" / "reports"
 
     def test_creates_directories(self):
         """Directories are created if they don't exist."""
@@ -102,8 +102,8 @@ class TestGetSessionPaths:
         """Works correctly when directories already exist."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create directories first
-            (Path(tmpdir) / ".nova-protector" / "sessions").mkdir(parents=True)
-            (Path(tmpdir) / ".nova-protector" / "reports").mkdir(parents=True)
+            (Path(tmpdir) / ".nova-tracer" / "sessions").mkdir(parents=True)
+            (Path(tmpdir) / ".nova-tracer" / "reports").mkdir(parents=True)
 
             # Should not raise
             paths = get_session_paths(tmpdir)
@@ -168,7 +168,7 @@ class TestInitSessionFile:
             session_id = generate_session_id()
             init_session_file(session_id, tmpdir)
 
-            marker_file = Path(tmpdir) / ".nova-protector" / "sessions" / ".active"
+            marker_file = Path(tmpdir) / ".nova-tracer" / "sessions" / ".active"
             assert marker_file.exists()
             assert marker_file.read_text().strip() == session_id
 
@@ -193,7 +193,7 @@ class TestAppendEvent:
             assert result is True
 
             # Verify event was appended
-            session_file = Path(tmpdir) / ".nova-protector" / "sessions" / f"{session_id}.jsonl"
+            session_file = Path(tmpdir) / ".nova-tracer" / "sessions" / f"{session_id}.jsonl"
             lines = session_file.read_text().strip().split("\n")
             assert len(lines) == 2  # init + event
 
@@ -212,7 +212,7 @@ class TestAppendEvent:
                 result = append_event(session_id, tmpdir, {"id": i + 1})
                 assert result is True
 
-            session_file = Path(tmpdir) / ".nova-protector" / "sessions" / f"{session_id}.jsonl"
+            session_file = Path(tmpdir) / ".nova-tracer" / "sessions" / f"{session_id}.jsonl"
             lines = session_file.read_text().strip().split("\n")
             assert len(lines) == 6  # init + 5 events
 
@@ -277,7 +277,7 @@ class TestGetActiveSession:
         """Cleans up marker when session file is missing."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create marker without session file
-            marker_dir = Path(tmpdir) / ".nova-protector" / "sessions"
+            marker_dir = Path(tmpdir) / ".nova-tracer" / "sessions"
             marker_dir.mkdir(parents=True)
             marker_file = marker_dir / ".active"
             marker_file.write_text("stale_session_id")
@@ -297,7 +297,7 @@ class TestFinalizeSession:
             init_session_file(session_id, tmpdir)
 
             # Verify marker exists
-            marker_file = Path(tmpdir) / ".nova-protector" / "sessions" / ".active"
+            marker_file = Path(tmpdir) / ".nova-tracer" / "sessions" / ".active"
             assert marker_file.exists()
 
             result = finalize_session(session_id, tmpdir)

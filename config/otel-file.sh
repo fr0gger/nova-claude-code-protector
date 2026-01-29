@@ -1,6 +1,7 @@
 #!/bin/bash
-# NOVA OpenTelemetry Configuration - File Output
-# Exports OTel data to files for NOVA to consume
+# Nova-tracer OpenTelemetry Configuration - File Output
+# Agent Monitoring and Visibility
+# Exports OTel data to files for Nova-tracer to consume
 #
 # Usage:
 #   source /path/to/nova_claude_code_protector/config/otel-file.sh
@@ -26,14 +27,14 @@ export OTEL_METRICS_INCLUDE_SESSION_ID=true
 export OTEL_METRICS_INCLUDE_VERSION=true
 export OTEL_METRICS_INCLUDE_ACCOUNT_UUID=true
 
-# NOVA tracking
+# Nova-tracer tracking
 export OTEL_RESOURCE_ATTRIBUTES="nova.enabled=true,nova.version=0.1.0"
 
 # Create log directory
-NOVA_OTEL_DIR="${HOME}/.nova-protector/otel"
+NOVA_OTEL_DIR="${HOME}/.nova-tracer/otel"
 mkdir -p "$NOVA_OTEL_DIR"
 
-echo "🛡️  NOVA OpenTelemetry enabled - logging to $NOVA_OTEL_DIR"
+echo "🛡️  Nova-tracer OpenTelemetry enabled - logging to $NOVA_OTEL_DIR"
 echo ""
 echo "To capture output, run:"
 echo "  claude 2>&1 | tee -a $NOVA_OTEL_DIR/\$(date +%Y-%m-%d).log"

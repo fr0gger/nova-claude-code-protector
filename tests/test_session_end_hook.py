@@ -144,7 +144,7 @@ class TestSessionEndHook:
         )
 
         # Verify predictable path
-        expected_path = tmp_path / ".nova-protector" / "reports" / f"{session_id}.html"
+        expected_path = tmp_path / ".nova-tracer" / "reports" / f"{session_id}.html"
         assert expected_path.exists(), f"Report should be at predictable path: {expected_path}"
 
     def test_hook_exits_zero_on_missing_session_id(self):

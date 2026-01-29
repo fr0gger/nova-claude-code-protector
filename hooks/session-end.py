@@ -4,7 +4,8 @@
 # dependencies = ["anthropic", "pyyaml"]
 # ///
 """
-NOVA Claude Code Protector - Session End Hook
+Nova-tracer - Session End Hook
+Agent Monitoring and Visibility
 
 This hook fires when a Claude Code session ends.
 It finalizes the session JSONL, generates an HTML report, and cleans up.
@@ -43,7 +44,7 @@ logging.basicConfig(
     format="[NOVA %(levelname)s] %(message)s",
     stream=sys.stderr,
 )
-logger = logging.getLogger("nova-protector.session-end")
+logger = logging.getLogger("nova-tracer.session-end")
 
 
 def main() -> None:
@@ -72,11 +73,11 @@ def main() -> None:
         # Use CLAUDE_PROJECT_DIR if available, fallback to cwd
         project_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", str(Path.cwd())))
 
-        # Get NOVA's active session ID (timestamp format, not Claude's UUID)
+        # Get Nova-tracer's active session ID (timestamp format, not Claude's UUID)
         session_id = get_active_session(str(project_dir))
 
         if not session_id:
-            logger.warning("No active NOVA session found, cannot generate report")
+            logger.warning("No active Nova-tracer session found, cannot generate report")
             sys.exit(0)
 
         # Build complete session object

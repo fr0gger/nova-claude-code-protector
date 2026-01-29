@@ -4,7 +4,8 @@
 # dependencies = ["pyyaml"]
 # ///
 """
-NOVA Claude Code Protector - User Prompt Capture Hook
+Nova-tracer - User Prompt Capture Hook
+Agent Monitoring and Visibility
 
 This hook fires on UserPromptSubmit to capture user prompts for debugging and tracing.
 Prompts are saved to the session JSONL alongside tool events for a complete conversation trace.
@@ -23,7 +24,6 @@ from pathlib import Path
 lib_dir = Path(__file__).parent / "lib"
 sys.path.insert(0, str(lib_dir))
 
-from nova_logging import log_event
 from session_manager import append_event, get_active_session, get_next_event_id
 
 
@@ -41,7 +41,9 @@ def main() -> None:
         except json.JSONDecodeError:
             sys.exit(0)
 
-        log_event(input_data, "User prompt captured")
+        # Note: Telemetry logging (log_event) disabled for performance - each hook is a new process
+        # and log_event() re-parses config + discovers plugins on every call
+        # Prompt data is already captured to session JSONL via append_event() below
 
         # Extract prompt text
         prompt = input_data.get("prompt", "")

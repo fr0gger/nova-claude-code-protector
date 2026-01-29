@@ -1,9 +1,10 @@
 # /// script
 # requires-python = ">=3.9"
-# dependencies = ["pyyaml"]
+# dependencies = []
 # ///
 """
-Claude Code NOVA Protector - PreToolUse Hook (Fast Blocking)
+Nova-tracer - PreToolUse Hook (Fast Blocking)
+Agent Monitoring and Visibility
 =============================================================
 
 Fast pre-execution check that blocks dangerous commands BEFORE execution.
@@ -14,19 +15,13 @@ Exit codes:
   2 = Block tool execution (dangerous command detected)
 
 JSON output for blocks:
-  {"decision": "block", "reason": "[NOVA] Blocked: {reason}"}
+  {"decision": "block", "reason": "[Nova-tracer] Blocked: {reason}"}
 """
 
 import json
 import re
 import sys
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-
-lib_dir = Path(__file__).parent / "lib"
-sys.path.insert(0, str(lib_dir))
-
-from nova_logging import log_event
+from typing import List, Optional, Tuple
 
 # Dangerous command patterns to block
 DANGEROUS_PATTERNS: List[Tuple[str, str]] = [
@@ -134,21 +129,13 @@ def main() -> None:
         # Block the operation
         output = {
             "decision": "block",
-            "reason": f"[NOVA] Blocked: {block_reason}"
+            "reason": f"[Nova-tracer] Blocked: {block_reason}"
         }
         print(json.dumps(output))
-        input_data["execution"] = {
-            "verdict": "block",
-            "reason": f"[NOVA] Blocked: {block_reason}"
-        }
-        log_event(input_data, "Tool blocked")
+        # Note: Telemetry logging disabled for performance - each hook is a new process
+        # and log_event() re-parses config + discovers plugins on every call
         sys.exit(2)
 
-    input_data["execution"] = {
-        "verdict": "allow",
-        "reason": f"[NOVA] Allowed"
-    }
-    log_event(input_data, "Tool allowed")
     # Allow the operation
     sys.exit(0)
 

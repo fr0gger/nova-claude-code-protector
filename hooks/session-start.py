@@ -4,7 +4,8 @@
 # dependencies = ["pyyaml"]
 # ///
 """
-NOVA Claude Code Protector - Session Start Hook
+Nova-tracer - Session Start Hook
+Agent Monitoring and Visibility
 
 Initializes session capture when Claude Code session starts.
 Creates .jsonl file for event logging with an init record.
@@ -37,7 +38,7 @@ logging.basicConfig(
     format="[NOVA %(levelname)s] %(message)s",
     stream=sys.stderr,
 )
-logger = logging.getLogger("nova-protector.session-start")
+logger = logging.getLogger("nova-tracer.session-start")
 
 
 def parse_hook_input() -> Optional[Dict[str, Any]]:
@@ -124,8 +125,8 @@ def handle_session_start(project_dir: str) -> bool:
 
 
 def print_banner() -> None:
-    """Print NOVA protection active banner to stderr."""
-    banner = "\033[36m🛡️  NOVA Protection Active\033[0m"
+    """Print Nova-tracer protection active banner to stderr."""
+    banner = "\033[36m🛡️  Nova-tracer Active\033[0m"
     print(banner, file=sys.stderr)
 
 

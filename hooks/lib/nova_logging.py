@@ -1,5 +1,6 @@
 """
-NOVA Claude Code Protector - Centralized Logging Module.
+Nova-tracer - Centralized Logging Module.
+Agent Monitoring and Visibility
 
 Provides a plugin-based logging system with handler discovery.
 Handlers are loaded from hooks/loggers/ directory.
@@ -335,7 +336,7 @@ def log_event(event_data: Dict[str, Any], message: Optional[str] = None) -> None
     if message:
         event_data["message"] = message
     event_data["host"] = platform.node()
-    event_data["service"] = "nova-protector"
+    event_data["service"] = "nova-tracer"
     event_data["platform"] = platform.system().lower()
     event_data["project_dir"] = os.environ.get("CLAUDE_PROJECT_DIR", "unknown")
     event_data["user"] = os.environ.get("USER", "unknown")

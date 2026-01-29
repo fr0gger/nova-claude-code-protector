@@ -130,7 +130,7 @@ class TestNewSessionInitialization:
             session_id = generate_session_id()
             init_session_file(session_id, tmpdir)
 
-            marker_file = Path(tmpdir) / ".nova-protector" / "sessions" / ".active"
+            marker_file = Path(tmpdir) / ".nova-tracer" / "sessions" / ".active"
             assert marker_file.exists()
             assert marker_file.read_text().strip() == session_id
 
@@ -173,7 +173,7 @@ class TestSessionResumeDetection:
             init_session_file(session_id, tmpdir)
 
             # Get initial file count
-            sessions_dir = Path(tmpdir) / ".nova-protector" / "sessions"
+            sessions_dir = Path(tmpdir) / ".nova-tracer" / "sessions"
             initial_count = len(list(sessions_dir.glob("*.jsonl")))
 
             # Call handle_session_start (should resume, not create new)
@@ -268,7 +268,7 @@ class TestIntegration:
             assert result.returncode == 0
 
             # Check session file was created
-            sessions_dir = Path(tmpdir) / ".nova-protector" / "sessions"
+            sessions_dir = Path(tmpdir) / ".nova-tracer" / "sessions"
             session_files = list(sessions_dir.glob("*.jsonl"))
 
             assert len(session_files) == 1
@@ -296,7 +296,7 @@ class TestIntegration:
             )
             assert result1.returncode == 0
 
-            sessions_dir = Path(tmpdir) / ".nova-protector" / "sessions"
+            sessions_dir = Path(tmpdir) / ".nova-tracer" / "sessions"
             session_files_after_first = list(sessions_dir.glob("*.jsonl"))
             assert len(session_files_after_first) == 1
 

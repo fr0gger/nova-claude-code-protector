@@ -1,9 +1,10 @@
 #!/bin/bash
 #
-# NOVA Claude Code Protector - Uninstaller
+# Nova-tracer - Uninstaller
+# Agent Monitoring and Visibility
 # =========================================
 #
-# Removes NOVA hooks from ~/.claude/settings.json
+# Removes Nova-tracer hooks from ~/.claude/settings.json
 # Preserves all other hooks and settings
 #
 # Usage:
@@ -24,7 +25,8 @@ NC='\033[0m'
 print_header() {
     echo -e "${CYAN}"
     echo "╔════════════════════════════════════════════════════════════╗"
-    echo "║      NOVA Claude Code Protector - Uninstaller              ║"
+    echo "║            Nova-tracer - Uninstaller                       ║"
+    echo "║       Agent Monitoring and Visibility                      ║"
     echo "╚════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -57,7 +59,7 @@ fi
 
 if [[ ! -f "$SETTINGS_FILE" ]]; then
     print_warning "No settings.json found at $SETTINGS_FILE"
-    print_info "NOVA hooks may not be installed."
+    print_info "Nova-tracer hooks may not be installed."
     exit 0
 fi
 
@@ -65,7 +67,7 @@ fi
 # Remove NOVA Hooks
 # =============================================================================
 
-echo -e "${BOLD}Removing NOVA hooks from settings.json...${NC}"
+echo -e "${BOLD}Removing Nova-tracer hooks from settings.json...${NC}"
 echo ""
 
 # Backup existing settings
@@ -79,13 +81,13 @@ existing_settings=$(cat "$SETTINGS_FILE")
 # Check if hooks section exists
 if ! echo "$existing_settings" | jq -e '.hooks' > /dev/null 2>&1; then
     print_warning "No hooks section found in settings.json"
-    print_info "NOVA hooks may not be installed."
+    print_info "Nova-tracer hooks may not be installed."
     exit 0
 fi
 
-# Remove NOVA hooks while preserving others
+# Remove Nova-tracer hooks while preserving others
 cleaned_settings=$(echo "$existing_settings" | jq '
-    # Helper function to check if a hook command contains NOVA path
+    # Helper function to check if a hook command contains Nova-tracer path
     def is_nova_hook:
         if .command then
             .command | test("nova_claude_code_protector|nova-guard|session-start\\.py|session-end\\.py|pre-tool-guard\\.py|post-tool-nova-guard\\.py")
@@ -93,10 +95,10 @@ cleaned_settings=$(echo "$existing_settings" | jq '
             false
         end;
 
-    # Remove NOVA hooks from arrays that have direct hooks
+    # Remove Nova-tracer hooks from arrays that have direct hooks
     def remove_nova_direct: map(select(is_nova_hook | not));
 
-    # Remove NOVA hooks from arrays that have matcher-based hooks
+    # Remove Nova-tracer hooks from arrays that have matcher-based hooks
     def remove_nova_matcher: map(
         if .hooks then
             .hooks = (.hooks | map(select(is_nova_hook | not)))
@@ -125,7 +127,7 @@ echo "$cleaned_settings" | jq '.' > "$SETTINGS_FILE"
 
 # Count remaining hooks
 remaining_hooks=$(jq '.hooks | keys | length' "$SETTINGS_FILE" 2>/dev/null || echo "0")
-print_success "Removed NOVA hooks from settings.json"
+print_success "Removed Nova-tracer hooks from settings.json"
 
 if [[ "$remaining_hooks" -gt 0 ]]; then
     print_info "$remaining_hooks other hook types preserved"
@@ -141,25 +143,25 @@ echo ""
 
 echo -e "${BOLD}Session data cleanup${NC}"
 echo ""
-print_info "NOVA stores session data in {project}/.nova-protector/ directories."
+print_info "Nova-tracer stores session data in {project}/.nova-tracer/ directories."
 echo ""
-read -p "Search for and optionally remove .nova-protector directories? [y/N] " cleanup_choice
+read -p "Search for and optionally remove .nova-tracer directories? [y/N] " cleanup_choice
 
 if [[ "${cleanup_choice:-N}" =~ ^[Yy] ]]; then
     echo ""
-    print_info "Searching for .nova-protector directories..."
+    print_info "Searching for .nova-tracer directories..."
 
-    # Find all .nova-protector directories in common project locations
+    # Find all .nova-tracer directories in common project locations
     nova_dirs=()
     while IFS= read -r -d '' dir; do
         nova_dirs+=("$dir")
-    done < <(find "$HOME" -maxdepth 5 -type d -name ".nova-protector" -print0 2>/dev/null)
+    done < <(find "$HOME" -maxdepth 5 -type d -name ".nova-tracer" -print0 2>/dev/null)
 
     if [[ ${#nova_dirs[@]} -eq 0 ]]; then
-        print_info "No .nova-protector directories found."
+        print_info "No .nova-tracer directories found."
     else
         echo ""
-        print_warning "Found ${#nova_dirs[@]} .nova-protector directories:"
+        print_warning "Found ${#nova_dirs[@]} .nova-tracer directories:"
         echo ""
         for dir in "${nova_dirs[@]}"; do
             # Get directory size
@@ -191,7 +193,7 @@ echo "║              Uninstallation Complete!                      ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-print_info "NOVA hooks have been removed from Claude Code."
+print_info "Nova-tracer hooks have been removed from Claude Code."
 echo ""
 print_info "Restart Claude Code for changes to take effect."
 echo ""

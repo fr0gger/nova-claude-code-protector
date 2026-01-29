@@ -411,11 +411,11 @@ class TestUninstallScriptValidation:
         assert "backup" in content.lower(), "Should create backup"
 
     def test_uninstall_script_prompts_for_cleanup(self):
-        """uninstall.sh should prompt for .nova-protector cleanup."""
+        """uninstall.sh should prompt for .nova-tracer cleanup."""
         project_root = Path(__file__).parent.parent
         uninstall_script = project_root / "uninstall.sh"
         content = uninstall_script.read_text()
-        assert ".nova-protector" in content, "Should reference .nova-protector directories"
+        assert ".nova-tracer" in content, "Should reference .nova-tracer directories"
         assert "read -p" in content, "Should prompt user"
 
 

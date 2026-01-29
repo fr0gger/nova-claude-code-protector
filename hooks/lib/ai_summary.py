@@ -1,5 +1,6 @@
 """
-AI Summary Module for NOVA Claude Code Protector.
+AI Summary Module for Nova-tracer.
+Agent Monitoring and Visibility
 
 Generates intelligent session summaries using Claude Haiku API.
 Falls back to stats-only summaries when API is unavailable.
@@ -21,7 +22,7 @@ logging.basicConfig(
     format="[NOVA %(levelname)s] %(message)s",
     stream=sys.stderr,
 )
-logger = logging.getLogger("nova-protector.ai-summary")
+logger = logging.getLogger("nova-tracer.ai-summary")
 
 # Claude Haiku model for summaries
 HAIKU_MODEL = "claude-3-5-haiku-20241022"

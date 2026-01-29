@@ -24,7 +24,7 @@ DATADOG_ENDPOINTS = {
 }
 
 DEFAULT_SITE = "datadoghq.com"
-DEFAULT_SERVICE = "nova-protector"
+DEFAULT_SERVICE = "nova-tracer"
 DEFAULT_SOURCE = "claude-code-hooks"
 
 # Maximum message size for truncation (Datadog limit is 1MB)

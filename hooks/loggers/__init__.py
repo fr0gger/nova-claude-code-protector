@@ -1,5 +1,6 @@
 """
-NOVA Claude Code Protector - Logging Handler Plugins.
+Nova-tracer - Logging Handler Plugins.
+Agent Monitoring and Visibility
 
 This directory contains handler plugins for the nova_logging system.
 Each plugin must export:

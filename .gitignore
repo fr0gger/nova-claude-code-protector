@@ -36,7 +36,8 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# NOVA runtime data (per-project)
+# Nova-tracer runtime data (per-project)
+.nova-tracer/
 .nova-protector/
 
 # UV cache
