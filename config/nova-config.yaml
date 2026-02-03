@@ -74,6 +74,29 @@ rule_files:
   - context_manipulation.nov
 
 # =============================================================================
+# DETECTION PLUGIN SYSTEM
+# =============================================================================
+
+# Detection configuration for the plugin-based detector system
+# This allows chaining multiple detectors (NOVA, YARA, custom, etc.)
+detection:
+  # Detection mode:
+  # - "parallel": Run all detectors concurrently, aggregate results (default)
+  # - "first_match": Run detectors in order, stop on first detection
+  mode: parallel
+  
+  # List of detectors to enable (order matters for first_match mode)
+  # Available: nova (more can be added as plugins in hooks/lib/detectors/)
+  detectors:
+    - nova
+  
+  # Per-detector configuration (optional - uses top-level settings as fallback)
+  # nova:
+  #   enable_keywords: true
+  #   enable_semantics: true
+  #   enable_llm: false
+
+# =============================================================================
 # DEBUG SETTINGS
 # =============================================================================
 
