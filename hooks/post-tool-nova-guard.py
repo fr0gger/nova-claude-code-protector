@@ -55,9 +55,16 @@ try:
 except ImportError:
     yaml = None
 
-# NOVA Framework imports
+# Detector plugin system imports
 try:
-    from nova.core.parser import NovaRuleFileParser
+    from lib.detectors import DetectionResult, DetectorRegistry
+    from lib.detectors.registry import aggregate_results
+    DETECTORS_AVAILABLE = True
+except ImportError:
+    DETECTORS_AVAILABLE = False
+
+# Legacy NOVA Framework imports (for backward compatibility check)
+try:
     from nova.core.scanner import NovaScanner
     NOVA_AVAILABLE = True
 except ImportError:
@@ -219,62 +226,82 @@ def extract_text_content(tool_name: str, tool_result: Any) -> str:
     return str(tool_result)
 
 
-def scan_with_nova(text: str, config: Dict[str, Any], rules_dir: Path) -> List[Dict]:
-    """Scan text using NOVA Framework rules.
+def scan_with_detectors(text: str, config: Dict[str, Any]) -> List[Dict]:
+    """Scan text using the detector plugin system.
+
+    Uses the DetectorRegistry to run all configured detectors and
+    aggregate results. Falls back gracefully if detectors unavailable.
 
     Args:
         text: The text content to scan
-        config: Configuration dict with NOVA settings
-        rules_dir: Path to directory containing .nov rule files
+        config: Configuration dict with detection settings
 
     Returns:
         List of detection dicts with rule_name, severity, description, etc.
     """
-    if not NOVA_AVAILABLE:
+    if not DETECTORS_AVAILABLE and not NOVA_AVAILABLE:
         return []
 
     detections = []
 
     try:
-        # Initialize NOVA scanner and parser
-        scanner = NovaScanner()
-        parser = NovaRuleFileParser()
-
-        # Load rules from all .nov files
-        rule_files = list(rules_dir.glob("*.nov"))
-
-        for rule_file in rule_files:
-            try:
-                rules = parser.parse_file(str(rule_file))
-                scanner.add_rules(rules)
-            except Exception as e:
-                if config.get("debug", False):
-                    print(f"Warning: Failed to load {rule_file}: {e}", file=sys.stderr)
-
-        # Run the scan
-        results = scanner.scan(text)
-
-        # Process results
-        for match in results:
-            if match.get("matched", False):
-                meta = match.get("meta", {})
-                detection = {
-                    "rule_name": match.get("rule_name", "unknown"),
-                    "severity": meta.get("severity", "medium"),
-                    "description": meta.get("description", ""),
-                    "category": meta.get("category", "unknown"),
-                    "matched_keywords": list(match.get("matching_keywords", {}).keys()),
-                    "matched_semantics": list(match.get("matching_semantics", {}).keys()),
-                    "llm_match": bool(match.get("matching_llm", {})),
-                    "confidence": 0.0,
-                }
-                detections.append(detection)
+        # Get the detector registry
+        registry = DetectorRegistry()
+        
+        # Run scan using registry (handles mode and detector selection)
+        results = registry.scan(text, config)
+        
+        # Convert DetectionResult objects to legacy detection dict format
+        for result in results:
+            if result.verdict in ("warned", "blocked"):
+                # Extract raw detections if available
+                raw_output = result.raw_output or {}
+                raw_detections = raw_output.get("detections", [])
+                
+                if raw_detections:
+                    # Use the detailed detection info from raw_output
+                    for det in raw_detections:
+                        detections.append({
+                            "rule_name": det.get("rule_name", "unknown"),
+                            "severity": det.get("severity", result.severity or "medium"),
+                            "description": det.get("description", ""),
+                            "category": det.get("category", "unknown"),
+                            "matched_keywords": det.get("matched_keywords", []),
+                            "matched_semantics": det.get("matched_semantics", []),
+                            "llm_match": det.get("llm_match", False),
+                            "confidence": det.get("confidence", result.confidence),
+                        })
+                else:
+                    # Fallback: create detection from result summary
+                    for rule_name in result.rules_matched:
+                        detections.append({
+                            "rule_name": rule_name,
+                            "severity": result.severity or "medium",
+                            "description": "",
+                            "category": "unknown",
+                            "matched_keywords": [],
+                            "matched_semantics": [],
+                            "llm_match": False,
+                            "confidence": result.confidence,
+                        })
 
     except Exception as e:
         if config.get("debug", False):
-            print(f"NOVA scan error: {e}", file=sys.stderr)
+            print(f"Detector scan error: {e}", file=sys.stderr)
 
     return detections
+
+
+# Legacy function for backward compatibility
+def scan_with_nova(text: str, config: Dict[str, Any], rules_dir: Path) -> List[Dict]:
+    """Legacy scan function - delegates to scan_with_detectors.
+    
+    Maintained for backward compatibility. New code should use
+    scan_with_detectors() directly.
+    """
+    # Inject rules_path into config for the nova detector
+    config_with_rules = {**config, "rules_path": str(rules_dir)}
+    return scan_with_detectors(text, config_with_rules)
 
 
 def format_warning(detections: List[Dict], tool_name: str, source_info: str) -> str:
@@ -399,7 +426,7 @@ def get_source_info(tool_name: str, tool_input: Dict[str, Any]) -> str:
         if description:
             return f"agent task: {description[:40]}"
         return "agent task output"
-    elif tool_name.startswith("mcp__") or tool_name.startswith("mcp_"):
+    elif tool_name.startswith("mcp_"):
         return f"MCP tool: {tool_name}"
     else:
         return f"{tool_name} output"
@@ -435,7 +462,7 @@ def parse_mcp_tool_name(tool_name: str) -> Dict[str, Any]:
         - mcp_server: str or None
         - mcp_function: str or None
     """
-    if not (tool_name.startswith("mcp__") or tool_name.startswith("mcp_")):
+    if not tool_name.startswith("mcp_"):
         return {"is_mcp": False, "mcp_server": None, "mcp_function": None}
 
     # Handle mcp__ prefix (standard)
@@ -634,7 +661,7 @@ def main() -> None:
     }
 
     # Also monitor MCP tools (they have mcp__ or mcp_ prefix)
-    is_mcp_tool = tool_name.startswith("mcp__") or tool_name.startswith("mcp_")
+    is_mcp_tool = tool_name.startswith("mcp_")
     should_scan = (tool_name in monitored_tools or is_mcp_tool)
 
     # Initialize NOVA results
@@ -648,23 +675,31 @@ def main() -> None:
     input_text = extract_input_text(tool_input)
 
     # Only scan monitored tools with sufficient content
-    if should_scan and NOVA_AVAILABLE and rules_dir:
+    # Use detector system if available, otherwise skip scanning
+    can_scan = DETECTORS_AVAILABLE or (NOVA_AVAILABLE and rules_dir)
+    
+    if should_scan and can_scan:
         max_length = config.get("max_content_length", 50000)
         min_severity = config.get("min_severity", "low")
 
         try:
             scan_start = datetime.now(timezone.utc)
 
+            # Prepare config with rules path for backward compatibility
+            scan_config = config.copy()
+            if rules_dir:
+                scan_config["rules_path"] = str(rules_dir)
+
             # Scan tool_input if it has content (AC1)
             if input_text and len(input_text) >= 10:
                 scan_input = input_text[:max_length] if len(input_text) > max_length else input_text
-                input_detections = scan_with_nova(scan_input, config, rules_dir)
+                input_detections = scan_with_detectors(scan_input, scan_config)
                 detections.extend(input_detections)
 
             # Scan tool_output if it has content (AC2)
             if text and len(text) >= 10:
                 scan_output = text[:max_length] if len(text) > max_length else text
-                output_detections = scan_with_nova(scan_output, config, rules_dir)
+                output_detections = scan_with_detectors(scan_output, scan_config)
                 detections.extend(output_detections)
 
             scan_end = datetime.now(timezone.utc)
@@ -705,7 +740,7 @@ def main() -> None:
             nova_severity = None
             nova_rules_matched = []
             if config.get("debug", False):
-                print(f"NOVA scan failed: {e}", file=sys.stderr)
+                print(f"Detection scan failed: {e}", file=sys.stderr)
 
     # Capture end timestamp
     timestamp_end = datetime.now(timezone.utc)
