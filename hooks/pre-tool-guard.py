@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.9"
-# dependencies = []
+# dependencies = ["pyyaml"]
 # ///
 """
 Nova-tracer - PreToolUse Hook (Fast Blocking)
@@ -9,6 +9,16 @@ Agent Monitoring and Visibility
 
 Fast pre-execution check that blocks dangerous commands BEFORE execution.
 Uses simple pattern matching for speed - full NOVA scanning happens in PostToolUse.
+
+Supports configurable compliance rules via nova-config.yaml.
+Config location: {nova_dir}/config/nova-config.yaml
+
+Configurable sections in nova-config.yaml:
+  - dangerous_patterns: Additional bash command patterns to block
+  - protected_files: Additional file paths to protect
+  - dangerous_content_patterns: Additional content patterns to block
+
+Each pattern supports an optional 'enabled' field (default: true).
 
 Exit codes:
   0 = Allow tool execution
@@ -21,15 +31,65 @@ JSON output for blocks:
 import json
 import re
 import sys
-from typing import List, Optional, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import yaml
+
+
+def load_config() -> Dict[str, Any]:
+    """Load the nova-config.yaml configuration file.
+
+    Returns an empty dict if the config cannot be loaded.
+    """
+    # Determine config path relative to this script
+    script_dir = Path(__file__).parent.resolve()
+    config_path = script_dir.parent / "config" / "nova-config.yaml"
+
+    if not config_path.exists():
+        return {}
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except Exception:
+        # Fail-open: if config is invalid, use defaults only
+        return {}
+
+
+def extend_patterns_from_config(
+    base_patterns: List[Tuple[str, str]],
+    config_key: str,
+    config: Dict[str, Any]
+) -> List[Tuple[str, str]]:
+    """Extend a base pattern list with patterns from config.
+
+    Config patterns should be a list of dicts with 'pattern', 'reason', and optional 'enabled' keys.
+    Patterns with enabled=false are skipped.
+    """
+    extended = list(base_patterns)
+    config_patterns = config.get(config_key, [])
+
+    if not config_patterns:
+        return extended
+
+    for item in config_patterns:
+        if isinstance(item, dict) and "pattern" in item and "reason" in item:
+            # Skip disabled rules (default is enabled=true)
+            if not item.get("enabled", True):
+                continue
+            extended.append((item["pattern"], item["reason"]))
+
+    return extended
+
 
 # Protected file paths - these should not be modified by the agent
 PROTECTED_FILES: List[Tuple[str, str]] = [
     (r'(^|/)\.claude/settings\.json$', "Claude settings file"),
 ]
 
-# Dangerous command patterns to block
-DANGEROUS_PATTERNS: List[Tuple[str, str]] = [
+# Default dangerous command patterns to block (security baseline)
+DEFAULT_BASH_PATTERNS: List[Tuple[str, str]] = [
     # Destructive file operations
     (r'\brm\s+(-[rf]+\s+)*(/|~|\$HOME|\$PAI_DIR|/\*)', "Destructive rm command"),
     (r'\brm\s+-rf\s+/', "rm -rf on root"),
@@ -58,10 +118,10 @@ DANGEROUS_PATTERNS: List[Tuple[str, str]] = [
     (r'\bnpx\s+skills\s+find', "Skills find command blocked"),
 ]
 
-# Write content patterns to block
+# Default write content patterns to block (security baseline)
 # Note: These patterns target actual malicious payloads, not legitimate code.
 # innerHTML, document.write are valid JS APIs - we only block suspicious combinations.
-DANGEROUS_CONTENT_PATTERNS: List[Tuple[str, str]] = [
+DEFAULT_CONTENT_PATTERNS: List[Tuple[str, str]] = [
     # XSS: Block eval with user-controlled input patterns
     (r'eval\s*\(\s*(location|document\.URL|document\.cookie|window\.name)', "XSS eval injection"),
     # XSS: Block document.write with script injection
@@ -71,6 +131,14 @@ DANGEROUS_CONTENT_PATTERNS: List[Tuple[str, str]] = [
     (r"UNION\s+SELECT.*FROM", "SQL injection attempt"),
     (r"'\s*OR\s+'1'\s*=\s*'1", "SQL injection attempt"),
 ]
+
+# Load config and extend patterns with custom values from nova-config.yaml
+_config = load_config()
+PROTECTED_FILES = extend_patterns_from_config(PROTECTED_FILES, "protected_files", _config)
+DANGEROUS_PATTERNS = extend_patterns_from_config(DEFAULT_BASH_PATTERNS, "dangerous_patterns", _config)
+DANGEROUS_CONTENT_PATTERNS = extend_patterns_from_config(
+    DEFAULT_CONTENT_PATTERNS, "dangerous_content_patterns", _config
+)
 
 
 def check_protected_file(file_path: str) -> Optional[str]:
@@ -95,8 +163,6 @@ def check_dangerous_command(command: str) -> Optional[str]:
     """
     if not command:
         return None
-
-    command_lower = command.lower()
 
     for pattern, reason in DANGEROUS_PATTERNS:
         if re.search(pattern, command, re.IGNORECASE):

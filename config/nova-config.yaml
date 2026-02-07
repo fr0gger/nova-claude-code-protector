@@ -102,3 +102,44 @@ logging:
       - team:cti
       - service:nova-tracer
       - source:claude-code-hooks
+
+# =============================================================================
+# PRE-TOOL BLOCKING PATTERNS (extends built-in patterns in pre-tool-guard.py)
+# =============================================================================
+
+# Additional dangerous command patterns to block in Bash
+# Format: list of {pattern: "regex", reason: "description", enabled: true/false}
+# Set enabled: false to disable a pattern without removing it
+dangerous_patterns:
+  # Example patterns - uncomment or add your own:
+  - pattern: '\bchmod\s+777'
+    reason: "Overly permissive chmod"
+    enabled: false
+  # - pattern: '\biptables\s+-F'
+  #   reason: "Flush firewall rules"
+  #   enabled: true
+
+# Additional protected file paths
+# Format: list of {pattern: "regex", reason: "description", enabled: true/false}
+protected_files:
+  # Example patterns - uncomment or add your own:
+  - pattern: '(^|/)\.env$'
+    reason: "Environment file"
+    enabled: false
+  - pattern: '(^|/)\.env\.local$'
+    reason: "Local environment file"
+    enabled: false
+  - pattern: '(^|/)\.ssh/'
+    reason: "SSH directory"
+    enabled: false
+
+# Additional dangerous content patterns for Write/Edit operations
+# Format: list of {pattern: "regex", reason: "description", enabled: true/false}
+dangerous_content_patterns:
+  # Example patterns - uncomment or add your own:
+  # - pattern: 'subprocess\.call\s*\(\s*shell\s*=\s*True'
+  #   reason: "Shell injection risk"
+  #   enabled: true
+  # - pattern: 'pickle\.loads?\s*\('
+  #   reason: "Unsafe deserialization"
+  #   enabled: true
