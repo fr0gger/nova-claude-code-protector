@@ -1,5 +1,15 @@
+---
+name: nova-tracer
+description: >
+  Detect and warn about indirect prompt injection attacks in Claude Code using
+  the NOVA Framework's three-tier detection (keywords, semantics, LLM).
+  Installs as a PostToolUse hook with configurable YARA-inspired rules.
+  Use when the user asks to install prompt injection protection, add security
+  monitoring to Claude Code, detect injection attacks, configure NOVA rules,
+  or test prompt injection defenses.
+---
+
 # Nova-tracer Skill
-### Agent Monitoring and Visibility
 
 ## Overview
 
